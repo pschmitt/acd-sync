@@ -4,7 +4,7 @@ cd $(readlink -f $(dirname "$0"))
 
 DEST_REMOTE=acd-crypt
 DEFAULT_FILE_PATH=/mnt/data
-RCLONE_CONFIG=./config/.rclone.conf
+RCLONE_CONFIG=$PWD/config/.rclone.conf
 
 declare -A DEST_DIR_MAPPING
 DEST_DIR_MAPPING[audio]='Audio'
