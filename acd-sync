@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+DEST_REMOTE=acd-crypt
+DEFAULT_FILE_PATH=/mnt/data
+
+declare -A DEST_DIR_MAPPING
+DEST_DIR_MAPPING[audio]='Audio'
+DEST_DIR_MAPPING[backup]='Backup'
+DEST_DIR_MAPPING[docs]='Documents'
+DEST_DIR_MAPPING[videos]='Videos'
+DEST_DIR_MAPPING[pictures]='Pictures/Pictures'
+DEST_DIR_MAPPING[gphotos]='Pictures/Google Photos'
+
+declare -A SRC_DIR_MAPPING
+SRC_DIR_MAPPING[gphotos]='gdrive:Google Photos'
+
+usage() {
+    echo "Usage: $(basename $0) DIR [DEST]"
+}
+
+if [[ "$#" -lt 1 ]]
+then
+    usage
+    exit 2
+fi
+
+if [[ -n "$1" ]]
+then
+    # If the user supplies the path to the src dir, use it
+    if [[ -d "$1" ]]
+    then
+        SRC_DIR="$1"
+    # Check if there is a mapping for the provided dir
+    elif [[ -n "${SRC_DIR_MAPPING[$1]}" ]]
+    then
+        SRC_DIR="${SRC_DIR_MAPPING[$1]}"
+    else
+    # Default to /mnt/data/XX
+        SRC_DIR="${DEFAULT_FILE_PATH}/${1}"
+    fi
+fi
+
+# If the user supplies a dest dir, use it
+if [[ -n "$2" ]]
+then
+    DEST_DIR="$2"
+else
+    DEST_DIR="${DEST_DIR_MAPPING[$1]}"
+fi
+
+# Uppercase the first letter if DEST_DIR was not set by the user and has no mapping
+if [[ -z "$DEST_DIR" ]]
+then
+    DEST_DIR="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+fi
+
+# Check if rclone is installed, resort to docker if not
+if command -v rclone >/dev/null 2>&1
+then
+    COMMAND=rclone
+else
+    if grep "$DEFAULT_FILE_PATH" <<< "$SRC_DIR" > /dev/null 2>&1
+    then
+        # Optional volume mount in case we want to sync a local dir
+        VOLUME="-v $SRC_DIR:$SRC_DIR"
+    fi
+    COMMAND="docker run --name rclone-${1} --user 0 --rm -v /srv/rclone/config:/config:ro $VOLUME pschmitt/rclone"
+fi
+
+echo Execute $COMMAND sync --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
+$COMMAND sync --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
