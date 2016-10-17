@@ -67,7 +67,7 @@ else
         # Optional volume mount in case we want to sync a local dir
         VOLUME="-v $SRC_DIR:$SRC_DIR"
     fi
-    COMMAND="docker run --name rclone-${1} --user 0 --rm -v ${RCLONE_CONFIG}:/config/.rclone.conf:ro $VOLUME pschmitt/rclone"
+    COMMAND="docker run --name rclone-${1} --user 0 --rm -v ${RCLONE_CONFIG}:/config/.rclone.conf $VOLUME pschmitt/rclone"
 fi
 
 echo Execute $COMMAND sync --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
