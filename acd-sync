@@ -57,7 +57,7 @@ fi
 # Check if rclone is installed, resort to docker if not
 if command -v rclone >/dev/null 2>&1
 then
-    COMMAND=rclone
+    COMMAND="rclone --config ~pschmitt/.rclone.conf"
 else
     if grep "$DEFAULT_FILE_PATH" <<< "$SRC_DIR" > /dev/null 2>&1
     then
