@@ -1,0 +1,10 @@
+[Unit]
+Description=Amazon Cloud Drive rclone add for %I
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/srv/acd-sync/acd-sync -n %i
+
+[Install]
+WantedBy=multi-user.target
