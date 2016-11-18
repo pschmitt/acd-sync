@@ -13,34 +13,41 @@ DEST_DIR_MAPPING[docs]='Documents'
 DEST_DIR_MAPPING[videos]='Videos'
 DEST_DIR_MAPPING[pictures]='Pictures/Pictures'
 DEST_DIR_MAPPING[gphotos]='Pictures/Google Photos'
+# DEST_DIR_MAPPING[test]='TEST-DELETEME'
 
 declare -A SRC_DIR_MAPPING
 SRC_DIR_MAPPING[gphotos]='gdrive:Google Photos'
+# SRC_DIR_MAPPING[test]='/tmp/source'
 
 usage() {
-    echo "Usage: $(basename $0) DIR [DEST]"
+    echo "Usage: $(basename $0) [-n] DIR [DEST]"
 }
 
-if [[ "$#" -lt 1 ]]
+if [[ "$#" -lt 1 || -z "$1" ]]
 then
     usage
     exit 2
 fi
 
-if [[ -n "$1" ]]
+# Check whether -n was set
+case "$1" in
+    -n|--no-deletions)
+        NO_DELETION=1
+        shift
+        ;;
+esac
+
+# If the user supplies the path to the src dir, use it
+if [[ -d "$1" ]]
 then
-    # If the user supplies the path to the src dir, use it
-    if [[ -d "$1" ]]
-    then
-        SRC_DIR="$1"
-    # Check if there is a mapping for the provided dir
-    elif [[ -n "${SRC_DIR_MAPPING[$1]}" ]]
-    then
-        SRC_DIR="${SRC_DIR_MAPPING[$1]}"
-    else
-    # Default to /mnt/data/XX
-        SRC_DIR="${DEFAULT_FILE_PATH}/${1}"
-    fi
+    SRC_DIR="$1"
+# Check if there is a mapping for the provided dir
+elif [[ -n "${SRC_DIR_MAPPING[$1]}" ]]
+then
+    SRC_DIR="${SRC_DIR_MAPPING[$1]}"
+else
+# Default to /mnt/data/XX
+    SRC_DIR="${DEFAULT_FILE_PATH}/${1}"
 fi
 
 # If the user supplies a dest dir, use it
@@ -70,5 +77,12 @@ else
     COMMAND="docker run --name rclone-${1} --user 0 --rm -v ${RCLONE_CONFIG}:/config/.rclone.conf $VOLUME pschmitt/rclone"
 fi
 
-echo Execute $COMMAND sync --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
-$COMMAND sync --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
+if [[ -n "$NO_DELETION" ]]
+then
+    RCLONE_SUBCOMMAND=copy
+else
+    RCLONE_SUBCOMMAND=sync
+fi
+
+echo Execute $COMMAND "$RCLONE_SUBCOMMAND" --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
+$COMMAND "$RCLONE_SUBCOMMAND" --max-size 30G "$SRC_DIR" "$DEST_REMOTE:${DEST_DIR}"
